@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -18,9 +20,12 @@ namespace WebAPIXUnit.MyAPI.IntegrationTest
         public WeatherForecastApiTest()
         {
             var server = new TestServer(new WebHostBuilder()
-                .UseEnvironment("Developement")
+                .UseEnvironment("Development")
+                .UseConfiguration(new ConfigurationBuilder()
+                    .AddJsonFile("appsettings.json") // Use appsettings.json
+                    .Build())
                 .UseStartup<Startup>());
-            
+
             _client = server.CreateClient();
         }
 
@@ -33,14 +38,37 @@ namespace WebAPIXUnit.MyAPI.IntegrationTest
 
             // Act
             var response = await _client.SendAsync(request);
-
             var content = await response.Content.ReadAsStringAsync();
-            var respBody = JsonDocument.Parse(content);
 
 
             // Assert
             response.EnsureSuccessStatusCode();
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+
+        [Theory]
+        [InlineData("GET")]
+        public async Task GetSettings(string method)
+        {
+            // Arrange
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "teste-integration");
+            // Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+            var request = new HttpRequestMessage(new HttpMethod(method), "/weatherforecast/settings");
+
+            // Act
+            var response = await _client.SendAsync(request);
+
+            var content = await response.Content.ReadAsStringAsync();
+            using var respBody = JsonDocument.Parse(content);
+
+            var root = respBody.RootElement;
+
+
+            // Assert
+            response.EnsureSuccessStatusCode();
+            Assert.Equal("teste-integration", root.GetProperty("envVariable").GetString());
+            Assert.Equal("Information-teste", root.GetProperty("appSettingsLog").GetString());
         }
     }
 }

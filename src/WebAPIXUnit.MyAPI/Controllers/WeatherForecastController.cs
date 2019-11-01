@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace WebAPIXUnit.MyAPI.Controllers
 {
@@ -17,10 +17,12 @@ namespace WebAPIXUnit.MyAPI.Controllers
         };
 
         private readonly ILogger<WeatherForecastController> _logger;
+        readonly IConfiguration _configuration;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(ILogger<WeatherForecastController> logger, IConfiguration configuration)
         {
             _logger = logger;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -34,6 +36,16 @@ namespace WebAPIXUnit.MyAPI.Controllers
                 Summary = Summaries[rng.Next(Summaries.Length)]
             })
             .ToArray();
+        }
+
+        [HttpGet("settings")]
+        public Object GetSettings()
+        {
+
+            return new {
+                EnvVariable = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+                AppSettingsLog = _configuration["Logging:LogLevel:Default"]
+            };
         }
     }
 }
